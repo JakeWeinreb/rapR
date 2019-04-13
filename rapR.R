@@ -2,9 +2,6 @@ library(spotifyr)
 library(tidyverse)
 library(datapasta)
 
-Sys.setenv(SPOTIFY_CLIENT_ID = 'd6604cc018224cfa914fea6a802af050')
-Sys.setenv(SPOTIFY_CLIENT_SECRET = '1973e4818d1742a5a57ffd4315b19ae0')
-
 access_token <- get_spotify_access_token()
 
 #load in synonyms of money------------------------------
