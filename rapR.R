@@ -2,9 +2,11 @@ library(spotifyr)
 library(tidyverse)
 library(datapasta)
 
+Sys.setenv(SPOTIFY_CLIENT_ID = 'your_id')
+Sys.setenv(SPOTIFY_CLIENT_SECRET = 'your_secret')
 access_token <- get_spotify_access_token()
 
-#load in synonyms of money------------------------------
+#load in synonyms of money (used datapasta for this)------------------------------
 money <- c("Bacon", "• Bank", "• Beans", "Benji", "• Benjamins", "• Biscuits", "• Big Ones", "Billionaire", 
            "• Bills", "• Bisquick", "• Bits", "• Boffo", "• Bones", "• Boodle", "• Bread", "• Brisket", "• Broccoli", 
            "• Bucks", "• Bullets", "• Bundle", "• Cabbage", "• Cake", "• Capital", "• Cash", "• Cheddar", "• Cheese", 
