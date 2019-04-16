@@ -25,58 +25,57 @@ money <- c("Bacon", "• Bank", "• Beans", "Benji", "• Benjamins", "• Bisc
 
 #---------------------------------------------------------
 
-#get top 100 most popular rappers today, filter to 50 most followed that can be considered pure rap
+#get top 100 most popular rappers today, filter to ones that can be considered pure rap
 top_50 <- get_genre_artists("rap", limit = 50) 
 next_50 <- get_genre_artists("rap", offset = 50, limit = 50)
-rappers <- bind_rows(top_50, next_50) %>%
+current_rappers <- bind_rows(top_50, next_50) %>%
   unnest(genres) %>%
-  filter(genres == "rap") %>%
-  top_n(n = 50, wt = follower_count) %>%
-  arrange(desc(follower_count))
+  filter(genres == "rap") %>% 
+  select(artist_name = name, artist_id = id, artist_genre = genres, artist_followers = followers.total)
 
 #get popular artists from past
-i_love_90s <- get_playlist_tracks(get_playlists("spotify", "37i9dQZF1DX186v583rmzp")) %>%
-  select(artist_name) %>%
+i_love_90s <- get_playlist_tracks("37i9dQZF1DX186v583rmzp") %>%
+  select(track.artists) %>% 
+  unlist() %>% 
+  .[str_detect(names(.), pattern = "track.artists.id")] %>% 
+  unname() %>% 
   unique()
 
-i_love_80s <- get_playlist_tracks(get_playlists("spotify", "37i9dQZF1DX2XmsXL2WBQd")) %>%
-  select(artist_name) %>%
+i_love_80s <- get_playlist_tracks("37i9dQZF1DX2XmsXL2WBQd") %>%
+  select(track.artists) %>% 
+  unlist() %>% 
+  .[str_detect(names(.), pattern = "track.artists.id | track.artists.name")] %>% 
+  unname() %>% 
   unique()
 
-old_rappers <- bind_rows(i_love_80s, i_love_90s) %>%
-  unique() %>%
-  .$artist_name
+old_rappers_info <- c(i_love_80s, i_love_90s) %>%
+  unique()
 
 #loop over old_rappers to get genre and popularity info on each one
-output <- vector("list", length = length(old_rappers))
-for (i in seq_along(old_rappers)) {
-  output[[i]] <- get_artists(old_rappers[i], return_closest_artist = TRUE)
+old_rappers_raw <- map(old_rappers_info, get_artist)
+output <- vector("list", length = length(old_rappers_info))
+for(i in seq_along(old_rappers_info)) {
+  output[[i]]$artist_name <- old_rappers_raw[[i]]$name
+  output[[i]]$artist_id <- old_rappers_raw[[i]]$id
+  output[[i]]$artist_genre <- old_rappers_raw[[i]]$genres
+  output[[i]]$artist_followers <- old_rappers_raw[[i]]$followers$total
 }
-
-#eliminate old artists that aren't pure "rap"
-old_rappers_clean <- output %>% bind_rows %>%
-  filter(!map_lgl(artist_genres, is.null)) %>%
-  unnest(artist_genres) %>%
-  filter(artist_genres == "rap") %>%
-  unique()
+old_rappers <- data.table::rbindlist(output) %>% 
+  filter(artist_genre == 'rap') %>% #eliminate old artists that aren't pure "rap"
+  mutate(artist_genre = as.character(artist_genre))
 
 #combine old school and new school rappers
-all_artists <- bind_rows(old_rappers_clean, rappers) %>%
-  arrange(artist_name) %>%
+all_artists <- bind_rows(old_rappers, current_rappers) %>%
   .$artist_name %>%
   unique()
 
 #get the full discography of all artists
 start_time <- Sys.time()
-discog <- map(all_artists, possibly(get_discography, otherwise = NULL), parallelize = TRUE)
+discog_raw <- map(all_artists, possibly(get_discography, otherwise = NULL), parallelize = TRUE)
 end_time <- Sys.time()
 elapsed <- end_time - start_time
-discog <- bind_rows(discog)
+discog <- bind_rows(discog_raw)
 
-#discog <- vector("list", length = length(all_artists))
-#for (i in seq_along(all_artists)) {
-#  discog[[i]] <- safely(get_discography(all_artists[i], parallelize = TRUE))
-#}
 
 artists_clean <- discog %>%
   ungroup() %>%
