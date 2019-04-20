@@ -73,7 +73,7 @@ all_artists <- bind_rows(old_rappers, current_rappers) %>%
 
 #get the full discography of all artists
 start_time <- Sys.time()
-discog_raw <- map(all_artists, possibly(get_discography, otherwise = NULL), parallelize = TRUE)
+discog_raw <- map(all_artists, possibly(get_discography, otherwise = NULL))
 end_time <- Sys.time()
 elapsed <- end_time - start_time
 discog <- bind_rows(discog_raw)
@@ -84,7 +84,7 @@ artists_clean <- discog %>%
   group_by(artist_name) %>%
   distinct(track_name, .keep_all = TRUE) %>% #make sure there are no duplicate track names within each artist
   filter(!map_lgl(lyrics, is.null)) %>%
-  select(artist_name, artist_uri, album_name, album_uri, album_release_year, duration_ms, track_name, track_uri, 
+  select(artist_name, artist_id, album_name, album_id, album_release_year, duration_ms, track_name, track_uri, 
          lyrics) %>%
   unnest(lyrics) %>%
   ungroup() %>%
@@ -92,17 +92,30 @@ artists_clean <- discog %>%
   mutate(count = str_count(.$lyric, 
                            pattern = paste("\\b", tolower(money),"\\b", sep="", collapse = "|"))) %>% #add counts of money words
   filter(!str_detect(tolower(track_name), "- live")) #remove song duplicates from live albums
-  
-
 
 #plot use of money words over time
 artists_clean %>% 
   group_by(artist_name, album_name, album_release_year, track_name) %>%
-  summarize(tot_ref = sum(count)) %>%
+  summarize(tot_ref = sum(count, na.rm = TRUE)) %>%
   ggplot(aes(x = album_release_year, y = tot_ref)) + #could add size = popularity
   geom_jitter(alpha = .2) +
   geom_smooth(method = "lm") +
   theme_minimal()
+
+use_over_time <- artists_clean %>% 
+  rowwise() %>% #slower because the mutate won't use vectorization
+  mutate(n_words = str_split(lyric, pattern = " ") %>% unlist() %>% length()) %>% 
+  group_by(artist_name, album_name, album_release_year, track_name) %>% 
+  summarize(num_words = sum(n_words, na.rm = TRUE),
+            count_ratio = sum(count, na.rm = TRUE) / num_words)
+  
+#gucci mane uses by far the most money words
+use_over_time %>% 
+  ungroup() %>% 
+  arrange(-count_ratio) %>% 
+  filter(count_ratio > .03) %>% 
+  count(artist_name) %>% 
+  arrange(-n)
 
 #check which artists were cut out
 artists_clean_unique <- artists_clean$artist_name %>% unique()
