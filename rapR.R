@@ -93,7 +93,7 @@ artists_clean <- discog %>%
                            pattern = paste("\\b", tolower(money),"\\b", sep="", collapse = "|"))) %>% #add counts of money words
   filter(!str_detect(tolower(track_name), "- live")) #remove song duplicates from live albums
 
-#plot use of money words over time
+#plot use of money words over time--need to figure out a better way to do this
 artists_clean %>% 
   group_by(artist_name, album_name, album_release_year, track_name) %>%
   summarize(tot_ref = sum(count, na.rm = TRUE)) %>%
@@ -122,8 +122,8 @@ artists_clean_unique <- artists_clean$artist_name %>% unique()
 setdiff(all_artists, artists_clean_unique)
 
 #create list of rappers to gather net worth data on
-#this list comprises rappers with at least three albums since the year I started college
 #consider changing to rappers with at least 1 album in last 5 years and no albums before 2000
+#maybe consider using song popularity as a proxy for sales?
 net_worth_list <- artists_clean %>% 
   filter(album_release_year > "2011-01-01") %>%
   select(artist_name, album_release_year) %>% 
@@ -132,12 +132,17 @@ net_worth_list <- artists_clean %>%
   summarize(num_albums = n()) %>% 
   filter(num_albums > 2)
 
+#full list for net worth data...more data
+net_worth_list <- artists_clean %>% 
+  select(artist_name) %>% 
+  unique()
+
 #export artists to google sheet for net worth data collection
 library(googlesheets)
-gs_title("rapR") %>% gs_ws_new(ws_title = "Net Worth", input = net_worth_list)
+gs_title("rapR") %>% gs_ws_new(ws_title = "Net Worth 2", input = net_worth_list) #have to log in if not already
 
 #load in net worth data from google spreadsheet
-net_worth_df <- gs_title("rapR") %>% gs_read(ws = "Net Worth")
+net_worth_df <- gs_title("rapR") %>% gs_read(ws = "Net Worth 2")
 
 #combine net worth data with frequency of artists talking about money
 #plot frequency vs. net worth
