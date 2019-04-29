@@ -146,8 +146,8 @@ net_worth_df <- gs_title("rapR") %>%
   gs_read(ws = "Net Worth 2") %>% 
   mutate(net_worth = str_remove_all(net_worth, ",") %>% as.numeric())
 
-#combine net worth data with frequency of artists talking about money
-#plot frequency vs. net worth
+
+#plot frequency of money words vs. net worth
 use_over_time %>% 
   group_by(artist_name) %>% 
   summarize(count_ratio = mean(count_ratio)) %>% 
@@ -159,37 +159,13 @@ use_over_time %>%
 
 #plot net worth vs. first album date
 
-
-artists_clean %>% group_by(artist_name) %>% 
-  count(artist_name, track_name) %>%
-  summarize(tot_lyrics = sum(count, na.rm = TRUE)) %>% #why do track_name and track_uri spit out diff counts?
+#can look into which money words are used by which rappers and overall
+p <- artists_clean %>% tidytext::unnest_tokens(word, lyric)
+p %>% mutate(money_lgl = ifelse(word %in% tolower(money), 1, 0)) %>% 
+  filter(money_lgl == 1) %>% 
+  group_by(album_release_year) %>% 
+  count(word) %>% 
+  top_n(1, n) %>% 
+  arrange(album_release_year, n) %>% 
+  print(n = 'inf')
   
-#sample with kendrick
-kendrick %>% select(album_name, track_name, line, lyric) %>% tidytext::unnest_tokens(word, lyric) %>% 
-  mutate(money_word = ifelse(word %in% tolower(money), 1, 0)) %>% group_by(track_name) %>% 
-  summarize(sum = sum(money_word)) %>% arrange(desc(sum))
-  
-pct_money_words <- artists_clean %>% 
-  select(artist_name, album_name, track_name, line, lyric) %>% 
-  tidytext::unnest_tokens(word, lyric) %>% 
-  mutate(money_word = str_count(word, pattern = paste("\\b", tolower(money),"\\b", sep="", collapse = "|"))) %>% 
-  group_by(artist_name, album_name) %>% 
-  summarize(sum = sum(money_word, na.rm = TRUE), n = n()) %>% 
-  mutate(ratio = sum / n * 100)
-
-pct_money_words2 <- artists_clean %>% 
-  select(artist_name, album_name, track_name, line, lyric) %>% 
-  tidytext::unnest_tokens(word, lyric) %>% 
-  mutate(money_word = str_count(word, pattern = paste("\\b", tolower(money),"\\b", sep="", collapse = "|"))) %>% 
-  group_by(artist_name) %>% 
-  summarize(sum = sum(money_word, na.rm = TRUE), n = n()) %>% 
-  mutate(ratio = sum / n * 100)
-
-pct_money_words2 %>% 
-  inner_join(net_worth_df, by = "artist_name") %>% 
-  select(-num_albums, -notes) %>% 
-  ggplot(aes(net_worth, ratio)) +
-  geom_point() +
-  geom_smooth() +
-  scale_x_log10()
-
