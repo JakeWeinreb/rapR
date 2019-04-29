@@ -2,7 +2,7 @@ library(spotifyr)
 library(tidyverse)
 library(datapasta)
 
-Sys.setenv(SPOTIFY_CLIENT_ID = 'your_id')
+Sys.setenv(SPOTIFY_CLIENT_ID = 'your_id') #see the spotifyr package details for setup instructions
 Sys.setenv(SPOTIFY_CLIENT_SECRET = 'your_secret')
 access_token <- get_spotify_access_token()
 
@@ -97,7 +97,7 @@ artists_clean <- discog %>%
 artists_clean %>% 
   group_by(artist_name, album_name, album_release_year, track_name) %>%
   summarize(tot_ref = sum(count, na.rm = TRUE)) %>%
-  ggplot(aes(x = album_release_year, y = tot_ref)) + #could add size = popularity
+  ggplot(aes(x = album_release_year, y = tot_ref)) +
   geom_jitter(alpha = .2) +
   geom_smooth(method = "lm") +
   theme_minimal()
@@ -122,8 +122,6 @@ artists_clean_unique <- artists_clean$artist_name %>% unique()
 setdiff(all_artists, artists_clean_unique)
 
 #create list of rappers to gather net worth data on
-#consider changing to rappers with at least 1 album in last 5 years and no albums before 2000
-#maybe consider using song popularity as a proxy for sales?
 net_worth_list <- artists_clean %>% 
   filter(album_release_year > "2011-01-01") %>%
   select(artist_name, album_release_year) %>% 
@@ -156,8 +154,6 @@ use_over_time %>%
   geom_point() + 
   theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
   scale_x_log10()
-
-#plot net worth vs. first album date
 
 #can look into which money words are used by which rappers and overall
 artists_unnested <- artists_clean %>% tidytext::unnest_tokens(word, lyric)
