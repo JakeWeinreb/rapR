@@ -107,11 +107,11 @@ use_over_time <- artists_clean %>%
   mutate(n_words = str_split(lyric, pattern = " ") %>% unlist() %>% length()) %>% 
   group_by(artist_name, album_name, album_release_year, track_name) %>% 
   summarize(num_words = sum(n_words, na.rm = TRUE),
-            count_ratio = sum(count, na.rm = TRUE) / num_words)
+            count_ratio = sum(count, na.rm = TRUE) / num_words) %>% 
+  ungroup()
   
 #gucci mane uses by far the most money words
 use_over_time %>% 
-  ungroup() %>% 
   arrange(-count_ratio) %>% 
   filter(count_ratio > .03) %>% 
   count(artist_name) %>% 
@@ -142,11 +142,24 @@ library(googlesheets)
 gs_title("rapR") %>% gs_ws_new(ws_title = "Net Worth 2", input = net_worth_list) #have to log in if not already
 
 #load in net worth data from google spreadsheet
-net_worth_df <- gs_title("rapR") %>% gs_read(ws = "Net Worth 2")
+net_worth_df <- gs_title("rapR") %>% 
+  gs_read(ws = "Net Worth 2") %>% 
+  mutate(net_worth = str_remove_all(net_worth, ",") %>% as.numeric())
 
 #combine net worth data with frequency of artists talking about money
 #plot frequency vs. net worth
+use_over_time %>% 
+  group_by(artist_name) %>% 
+  summarize(count_ratio = mean(count_ratio)) %>% 
+  full_join(net_worth_df) %>% 
+  ggplot(aes(net_worth, count_ratio)) + 
+  geom_point() + 
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  scale_x_log10()
+
 #plot net worth vs. first album date
+
+
 artists_clean %>% group_by(artist_name) %>% 
   count(artist_name, track_name) %>%
   summarize(tot_lyrics = sum(count, na.rm = TRUE)) %>% #why do track_name and track_uri spit out diff counts?
