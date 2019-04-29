@@ -160,8 +160,8 @@ use_over_time %>%
 #plot net worth vs. first album date
 
 #can look into which money words are used by which rappers and overall
-p <- artists_clean %>% tidytext::unnest_tokens(word, lyric)
-p %>% mutate(money_lgl = ifelse(word %in% tolower(money), 1, 0)) %>% 
+artists_unnested <- artists_clean %>% tidytext::unnest_tokens(word, lyric)
+artists_unnested %>% mutate(money_lgl = ifelse(word %in% tolower(money), 1, 0)) %>% 
   filter(money_lgl == 1) %>% 
   group_by(album_release_year) %>% 
   count(word) %>% 
@@ -169,3 +169,12 @@ p %>% mutate(money_lgl = ifelse(word %in% tolower(money), 1, 0)) %>%
   arrange(album_release_year, n) %>% 
   print(n = 'inf')
   
+artist_top_money_words <- function(artist, k = 1){
+  artists_unnested %>% mutate(money_lgl = ifelse(word %in% tolower(money), 1, 0)) %>% 
+    filter(money_lgl == 1, artist_name == artist) %>% 
+    group_by(album_release_year) %>% 
+    count(word) %>% 
+    top_n(k, n) %>% 
+    arrange(album_release_year, n)
+}
+
