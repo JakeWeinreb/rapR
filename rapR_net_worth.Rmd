@@ -31,7 +31,7 @@ library(googlesheets)
 library(knitr)
 ```
 
-```{r environment}
+```{r}
 Sys.setenv(SPOTIFY_CLIENT_ID = 'your_id') #see the spotifyr package details for setup instructions
 Sys.setenv(SPOTIFY_CLIENT_SECRET = 'your_secret')
 access_token <- get_spotify_access_token()
@@ -44,6 +44,27 @@ To get the data, I used the spotifyr package, which is an R wrapper (no pun inte
 I grabbed the full discography, including every album, song, and lyric, for the most popular rappers today and a variety of rappers from the 80's and 90's based on public playlists.  This gave me a list of over 130 artists, from 2Pac and Lil' Kim, to 2 Chainz and Lil Uzi Vert.
 
 ```{r today}
+#load in synonyms of money (used datapasta for this)------------------------------
+money <- c("Bacon", "• Bank", "• Beans", "Benji", "• Benjamins", "• Biscuits", "• Big Ones", "Billionaire", 
+           "• Bills", "• Bisquick", "• Bits", "• Boffo", "• Bones", "• Boodle", "• Bread", "• Brisket", "• Broccoli", 
+           "• Bucks", "• Bullets", "• Bundle", "• Cabbage", "• Cake", "• Capital", "• Cash", "• Cheddar", "• Cheese", 
+           "• Chips", "• Chits", "• Chump Change", "• Clams", "• Cnotes", "• Coin", "• Collard Greens", "• Cream", 
+           "• Currency", "• Dead Presidents", "• Dibs", "• Din", "Dollar", "• Doubloons", "• Dough", "• Drafts", 
+           "• Ducats", "• Duckets", "• Dub", "• Fetti", "• Fetta", "• Finances", "• Fins", "• Fish Sticks", 
+           "• Fold Ups", "• Fortune", "• Franklins", "Frog", "• Frogskins", "• Funds", "• Gs", "• Gelt", "• Gold", 
+           "Grand", "Green", "Greenback", "• Guala", "• Guap", "Gwop", "• Gwap", "• Guineas", "• Hundies", "Hunnit", 
+           "• Jack", "• Jacksons", "• Kings ransom", "• Knots", "• Lettuce", "• Lincolns", "• Long green", "• Loonies", 
+           "• Loot", "• Lucci", "• Luchini", "• Lucre", "• Mazuma", "• Means", "Millie", "Millionaire", "• Mint", 
+           "• Mite", "• Moolah", "• Moss", "• Mozzarella", "• Notes", "• Paper", "• Payola", "• Pelf", "peso", 
+           "piece of eight", "• Pieces of eight", "• Pin", "• Pittance", "• Plaster", "• Ps", "• Quiche", "• Quid", 
+           "• Racks", "• Reagans", "• Rich", "• Rivets", "• Sawbucks", "• Scratch", "• Scrilla", "• Scrip", "• Shekels", 
+           "• Shrapnel", "• Silver", "• Simoleons", "• Singles", "• Smack", "• Sodium", "• Specie", "• Spinach", 
+           "• Spondulicks", "• Stacks", "• Stake", "• Stash", "• Tender", "• Treasure", "• VBucks", "• Wad", 
+           "• Wampum", "Yard", "• Zucchini") %>%
+  str_replace_all("[^[:alnum:]]", "")
+```
+
+```{r}
 #get top 100 most popular rappers today, filter to ones that can be considered pure rap
 top_50 <- get_genre_artists("rap", limit = 50) 
 next_50 <- get_genre_artists("rap", offset = 50, limit = 50)
@@ -107,6 +128,7 @@ discog <- bind_rows(discog_raw)
 I also found a couple online lists of rap synonyms for the word "money"[^2].  You can check them out in the Google Sheet I included in the Github repo.
 
 [^2]: The list is a bit messy, as some of the synonyms may be used in other contexts.  If you have any suggestions for additions, let me know!
+
 ```{r money_words}
 #load in synonyms of money (used datapasta for this)------------------------------
 money <- c("Bacon", "• Bank", "• Beans", "Benji", "• Benjamins", "• Biscuits", "• Big Ones", "Billionaire", 
@@ -127,6 +149,7 @@ money <- c("Bacon", "• Bank", "• Beans", "Benji", "• Benjamins", "• Bisc
            "• Wampum", "Yard", "• Zucchini") %>%
   str_replace_all("[^[:alnum:]]", "")
 ```
+
 
 ```{r}
 artists_clean <- discog %>%
