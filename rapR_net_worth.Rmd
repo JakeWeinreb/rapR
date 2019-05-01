@@ -8,7 +8,7 @@ output:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
 ```
 
 Rapping.  It's one of the only professions I know of where you can literally make money by talking about how much money you make.  
@@ -31,7 +31,7 @@ library(googlesheets)
 library(knitr)
 ```
 
-```{r}
+```{r environment}
 Sys.setenv(SPOTIFY_CLIENT_ID = 'your_id') #see the spotifyr package details for setup instructions
 Sys.setenv(SPOTIFY_CLIENT_SECRET = 'your_secret')
 access_token <- get_spotify_access_token()
@@ -43,7 +43,7 @@ To get the data, I used the spotifyr package, which is an R wrapper (no pun inte
 
 I grabbed the full discography, including every album, song, and lyric, for the most popular rappers today and a variety of rappers from the 80's and 90's based on public playlists.  This gave me a list of over 130 artists, from 2Pac and Lil' Kim, to 2 Chainz and Lil Uzi Vert.
 
-```{r today}
+```{r money}
 #load in synonyms of money (used datapasta for this)------------------------------
 money <- c("Bacon", "• Bank", "• Beans", "Benji", "• Benjamins", "• Biscuits", "• Big Ones", "Billionaire", 
            "• Bills", "• Bisquick", "• Bits", "• Boffo", "• Bones", "• Boodle", "• Bread", "• Brisket", "• Broccoli", 
@@ -64,7 +64,7 @@ money <- c("Bacon", "• Bank", "• Beans", "Benji", "• Benjamins", "• Bisc
   str_replace_all("[^[:alnum:]]", "")
 ```
 
-```{r}
+```{r today}
 #get top 100 most popular rappers today, filter to ones that can be considered pure rap
 top_50 <- get_genre_artists("rap", limit = 50) 
 next_50 <- get_genre_artists("rap", offset = 50, limit = 50)
@@ -162,31 +162,38 @@ artists_clean <- discog %>%
   unnest(lyrics) %>%
   ungroup() %>%
   mutate(lyric = tolower(str_replace_all(lyric, "[:punct:]", ""))) %>% #clean capitalization, punctuation
-  mutate(count = str_count(.$lyric, 
+  mutate(money_count = str_count(.$lyric, 
                            pattern = paste("\\b", tolower(money),"\\b", sep="", collapse = "|"))) %>% #add counts of money words
   filter(!str_detect(tolower(track_name), "- live")) #remove song duplicates from live albums
 ```
 
-The first thing I wanted to check is how the use of money words changed over time.  Were older artists more/less likely to talk about it?
+The first thing I wanted to check is how the use of money words changed over time.  Were older artists more/less likely to brag about their cash?
 
 
 
-```{r}
-#plot use of money words over time--need to figure out a better way to do this
-artists_clean %>% 
-  group_by(artist_name, album_name, album_release_year, track_name) %>%
-  summarize(tot_ref = sum(count, na.rm = TRUE)) %>%
-  ggplot(aes(x = album_release_year, y = tot_ref)) + #could add size = popularity
-  geom_jitter(alpha = .2) +
-  geom_smooth(method = "lm") +
-  theme_minimal()
+```{r over_time_plot}
+#plot use of money words over time--maybe make this a gganimate?
+use_over_time %>% 
+  group_by(album_release_year) %>% 
+  summarize(mean_count_ratio = mean(count_ratio),
+            med_count_ratio = median(count_ratio)) %>% 
+  ggplot(aes(x = album_release_year, y = mean_count_ratio)) + #could add size = popularity
+  geom_point() +
+  geom_smooth(method = "loess", se = FALSE) +
+  scale_y_continuous(labels = scales::percent) +
+  theme_minimal() +
+  labs(title = "\"I got all this money in my [lyrics] and that s*** is goin up\"--Iamsu!", 
+       subtitle = "Synonyms for money as a percentage of total song lyrics",
+       x = "Release Year", y = "Percent")
+```
 
+```{r over_time}
 use_over_time <- artists_clean %>% 
   rowwise() %>% #slower because the mutate won't use vectorization
   mutate(n_words = str_split(lyric, pattern = " ") %>% unlist() %>% length()) %>% 
   group_by(artist_name, album_name, album_release_year, track_name) %>% 
   summarize(num_words = sum(n_words, na.rm = TRUE),
-            count_ratio = sum(count, na.rm = TRUE) / num_words) %>% 
+            count_ratio = sum(money_count, na.rm = TRUE) / num_words) %>% 
   ungroup()
 ```
 
@@ -267,5 +274,10 @@ artist_top_money_words <- function(artist, k = 1){
     top_n(k, n) %>% 
     arrange(album_release_year, n)
 }
+```
+
+How many songs an artist has with the word money in it
+```{r}
+artists_clean %>% filter(artist_name == "Gucci Mane") %>% .$track_name %>% unique() %>% tolower() %>% str_count("money") %>% sum()
 ```
 
