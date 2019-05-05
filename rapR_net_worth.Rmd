@@ -213,7 +213,15 @@ I guess that's not really surprising, given that he has `<r artists_clean %>% fi
 
 ![](https://www.youtube.com/watch?v=RLFCmXGe30c)
 
-```{r}
+Next we can look at which synonyms are used.  Using the full dataset, the wordcloud below gives a quick glance at the most commonly used words.  
+
+```{r wordcloud}
+
+```
+
+Over time, we can see that the most popular phrasing has fluctuated.   
+
+```{r synonyms}
 #can look into which money words are used by which rappers and overall
 artists_unnested <- artists_clean %>% tidytext::unnest_tokens(word, lyric)
 artists_unnested %>% mutate(money_lgl = ifelse(word %in% tolower(money), 1, 0)) %>% 
@@ -222,8 +230,12 @@ artists_unnested %>% mutate(money_lgl = ifelse(word %in% tolower(money), 1, 0)) 
   count(word) %>% 
   top_n(1, n) %>% 
   arrange(album_release_year, n) %>% 
-  print(n = 'inf')
-  
+  kable()
+```
+
+And here's a look at the three most popular synonyms for a few of my favorite artists:
+
+```{r synonyms_fn}  
 artist_top_money_words <- function(artist, k = 1){
   artists_unnested %>% mutate(money_lgl = ifelse(word %in% tolower(money), 1, 0)) %>% 
     filter(money_lgl == 1, artist_name == artist) %>% 
@@ -232,6 +244,9 @@ artist_top_money_words <- function(artist, k = 1){
     top_n(k, n) %>% 
     arrange(album_release_year, n)
 }
+
+artist_synonyms <- c("Kendrick Lamar", "A$AP Rocky", "ScHoolboy Q")
+map(artist_synonyms, artist_top_money_words, k = 3)
 ```
 
 
